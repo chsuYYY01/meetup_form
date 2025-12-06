@@ -75,7 +75,7 @@ with st.container():
     italy_store = None
     if type_option == "義式":
         italy_store = st.selectbox(
-            "🇰🇷 請選擇義式店家",
+            "IT 請選擇義式店家",
             ["貳樓", "莫凡比", "亞丁尼", "其他"]
         )
     # 補充
@@ -95,6 +95,8 @@ if submitted:
         "type": [type_option],
         "hotpot_store": [hotpot_store],
         "korean_store": [korean_store],
+        "italy_store": [italy_store],
+
         "comment": [comment]
     }
 
@@ -129,5 +131,6 @@ if "admin" in query_params:
             st.info("目前尚無回應資料")
     elif password != "":
         st.error("密碼錯誤")
+
 
 
