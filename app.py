@@ -1,128 +1,96 @@
 import streamlit as st
 import pandas as pd
 import os
-from datetime import date
 
-# ----------------------------------------------
-# 頁面設定
-# ----------------------------------------------
-st.set_page_config(page_title="聚餐表單", page_icon="🍽️", layout="centered")
+st.set_page_config(page_title="桃園聚餐表單", page_icon="🍽️", layout="centered")
 
-# ----------------------------------------------
-# 自訂 CSS 美化
-# ----------------------------------------------
-st.markdown("""
-    <style>
-        .title {
-            font-size: 34px;
-            font-weight: 700;
-            color: #2E86C1;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .subtitle {
-            font-size: 18px;
-            color: #555;
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .card {
-            background: #ffffff;
-            padding: 25px 30px;
-            border-radius: 16px;
-            box-shadow: 0px 4px 12px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-    </style>
-""", unsafe_allow_html=True)
+# ---------- UI 美化 ----------
+st.title("🍽️ 桃園聚餐選擇表單")
+st.markdown("請依序選擇日期、餐廳類型與店家，填寫後可儲存回答。")
+st.markdown("---")
 
-# ----------------------------------------------
-# 標題
-# ----------------------------------------------
-st.markdown("<div class='title'>🍽️ 聚餐意願表單</div>", unsafe_allow_html=True)
-st.markdown("<div class='subtitle'>請依序填寫以下資訊，提交後即可完成！</div>", unsafe_allow_html=True)
+# ---------- 餐廳資料 ----------
+STORE_LISTS = {
+    "火鍋": [
+        "輕井澤(台茂店)", "老先覺(南崁店)", "鼎王(台茂店)",
+        "肉多多火鍋(南崁店)", "石二鍋(台茂店)"
+    ],
+    "韓式": [
+        "新麻蒲(台茂店)", "八色烤肉(南崁店)", "豆腐村(台茂店)",
+        "韓舍韓國烤肉(南崁店)", "姜虎東白丁(台茂店)"
+    ],
+    "義式": [
+        "莫凡彼義式餐廳(台茂店)", "陶板屋義式(南崁店)", "Trattoria義大利餐廳(台茂店)",
+        "La Festa義式料理(南崁店)", "義饗食堂(台茂店)"
+    ]
+}
 
-# ----------------------------------------------
-# 表單卡片區塊
-# ----------------------------------------------
-with st.container():
-    st.markdown("<div class='card'>", unsafe_allow_html=True)
+ADMIN_PASSWORD = "admin123"  # 管理者密碼，可自行更改
+RESPONSES_CSV = "answers.csv"
 
-    # 日期
-    date_selected = st.date_input("📅 請選擇日期", value=date.today())
+# ---------- 問卷表單 ----------
+with st.form(key="response_form"):
+    st.subheader("📅 選擇日期")
+    date = st.date_input("請選擇聚餐日期")
 
-    # 餐飲類型
-    type_option = st.selectbox(
-        "🍱 想吃哪種類型？",
-        ["請選擇", "韓式", "火鍋", "日式"]
-    )
+    st.subheader("🍱 選擇餐廳類型")
+    type_option = st.selectbox("餐廳類型", ["請選擇"] + list(STORE_LISTS.keys()) + ["其他"])
 
-    # 火鍋類型店家
-    hotpot_store = None
-    if type_option == "火鍋":
-        hotpot_store = st.selectbox(
-            "🔥 請選擇火鍋店家",
-            ["涮乃葉", "築間", "海底撈", "鼎王", "其他"]
-        )
+    selected_store = ""
+    if type_option in STORE_LISTS:
+        st.subheader("🏠 選擇店家")
+        col1, col2 = st.columns(2)
+        with col1:
+            selected_store = st.selectbox("請選擇店家", STORE_LISTS[type_option] + ["其他/手動輸入"])
+        with col2:
+            if selected_store == "其他/手動輸入":
+                selected_store = st.text_input("手動輸入店家名稱")
+    elif type_option == "其他":
+        selected_store = st.text_input("請輸入想吃的餐廳或店家名稱")
 
-    # 韓式店家
-    korean_store = None
-    if type_option == "韓式":
-        korean_store = st.selectbox(
-            "🇰🇷 請選擇韓式店家",
-            ["新麻蒲", "八色烤肉", "豆腐村", "其他"]
-        )
+    st.subheader("💬 其他備註（選填）")
+    comment = st.text_area("可填寫其他需求或備註", height=80)
 
-    # 補充
-    comment = st.text_area("💬 其他補充（選填）", height=100)
+    submit_btn = st.form_submit_button("✅ 提交")
 
-    # 提交按鈕
-    submitted = st.button("提交")
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-# ----------------------------------------------
-# 資料提交處理
-# ----------------------------------------------
-if submitted:
-    data = {
-        "date": [str(date_selected)],
-        "type": [type_option],
-        "hotpot_store": [hotpot_store],
-        "korean_store": [korean_store],
-        "comment": [comment]
+# ---------- 提交處理 ----------
+if submit_btn:
+    row = {
+        "date": str(date),
+        "restaurant_type": type_option,
+        "restaurant_name": selected_store,
+        "note": comment
     }
 
-    df = pd.DataFrame(data)
-
-    # 寫入 CSV 檔
-    if os.path.exists("answers.csv"):
-        df.to_csv("answers.csv", mode="a", header=False, index=False, encoding="utf-8-sig")
+    df_row = pd.DataFrame([row])
+    if os.path.exists(RESPONSES_CSV):
+        df_row.to_csv(RESPONSES_CSV, mode="a", header=False, index=False, encoding="utf-8-sig")
     else:
-        df.to_csv("answers.csv", index=False, encoding="utf-8-sig")
+        df_row.to_csv(RESPONSES_CSV, index=False, encoding="utf-8-sig")
 
-    st.success("🎉 提交成功！感謝你的填寫")
+    st.success("🎉 提交成功！感謝你的填寫。")
     st.balloons()
+    st.json(row)
 
-# ----------------------------------------------
-# 管理者模式（隱藏入口）
-# 只有網址帶 ?admin=1 才會顯示
-# 例如：http://localhost:8501/?admin=1
-# ----------------------------------------------
-query_params = st.query_params
+st.markdown("---")
 
-if "admin" in query_params:
-    st.markdown("### 🔐 管理者登入")
-    password = st.text_input("請輸入管理密碼", type="password")
+# ---------- 管理者模式（完全隱藏，只有輸入密碼才會顯示） ----------
+password = st.text_input("🔒 管理者專用密碼 (僅你知道)", type="password")
+if password == ADMIN_PASSWORD:
+    st.subheader("🔐 管理者區")
+    if os.path.exists(RESPONSES_CSV):
+        df = pd.read_csv(RESPONSES_CSV, encoding="utf-8-sig")
+        st.write("總回應數：", len(df))
+        st.dataframe(df)
 
-    if password == "900508":  # ← 你可以自行修改密碼
-        st.success("登入成功（僅你能看到）")
-        if os.path.exists("answers.csv"):
-            df_all = pd.read_csv("answers.csv", encoding="utf-8-sig")
-            st.dataframe(df_all)
-        else:
-            st.info("目前尚無回應資料")
-    elif password != "":
-        st.error("密碼錯誤")
+        # 下載 CSV
+        csv_bytes = open(RESPONSES_CSV, "rb").read()
+        st.download_button("📥 下載 CSV", data=csv_bytes, file_name="responses.csv", mime="text/csv")
 
-
+        st.markdown("#### 篩選回應")
+        unique_types = df["restaurant_type"].dropna().unique().tolist()
+        sel_type = st.multiselect("依餐廳類型篩選", options=unique_types)
+        if sel_type:
+            st.dataframe(df[df["restaurant_type"].isin(sel_type)])
+    else:
+        st.info("目前還沒有回應。")
