@@ -72,12 +72,12 @@ with st.container():
             "🇰🇷 請選擇韓式店家",
             ["涓豆腐", "永和樓", "韓華園", "香港飯店"]
         )
-    italy_store = None
-    if type_option == "義式":
-        italy_store = st.selectbox(
-            "IT 請選擇義式店家",
-            ["貳樓", "莫凡比", "亞丁尼", "其他"]
-        )
+    # italy_store = None
+    # if type_option == "義式":
+    #     italy_store = st.selectbox(
+    #         "IT 請選擇義式店家",
+    #         ["貳樓", "莫凡比", "亞丁尼", "其他"]
+    #     )
     # 補充
     comment = st.text_area("💬 其他補充（選填）", height=100)
 
@@ -95,6 +95,7 @@ if submitted:
         "type": [type_option],
         "hotpot_store": [hotpot_store],
         "korean_store": [korean_store],
+        # "korean_store": [korean_store],
 
         "comment": [comment]
     }
@@ -130,6 +131,7 @@ if "admin" in query_params:
             st.info("目前尚無回應資料")
     elif password != "":
         st.error("密碼錯誤")
+
 
 
 
