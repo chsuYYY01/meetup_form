@@ -23,7 +23,7 @@ hotpot_store = None
 if type_option == "火鍋":
     hotpot_store = st.selectbox(
         "🔥 請選擇火鍋店家",
-        ["輕井澤", "老先覺", "鼎王", "其他"]
+        ["輕井澤", "老先覺", "鼎王", "海底撈"]
     )
 
 # --- 如果選韓式，顯示韓式店 ---
@@ -76,3 +76,4 @@ if password == "admin123":
         st.info("目前還沒有任何回應。")
 else:
     st.info("如需查看回應，請輸入管理密碼。（預設：admin123）")
+
