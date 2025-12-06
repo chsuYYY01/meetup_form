@@ -7,41 +7,66 @@ from duckduckgo_search import DDGS
 
 # ---------- 網頁設定 ----------
 st.set_page_config(
-    page_title="聚餐大輪盤 (完整版)",
+    page_title="聚餐大輪盤 (暗黑美化版)",
     page_icon="🍲",
     layout="centered"
 )
 
-# ---------- CSS 美化 ----------
+# ---------- CSS 美化 (專為 Dark Mode 優化) ----------
 st.markdown("""
     <style>
+    /* 全局按鈕樣式 */
     .stButton>button {
         width: 100%;
         font-size: 20px;
         font-weight: bold;
-        border-radius: 10px;
-        background-color: #FF4B4B;
+        border-radius: 12px;
+        background: linear-gradient(45deg, #FF4B4B, #FF914D); /* 漸層紅 */
         color: white;
+        border: none;
+        box-shadow: 0 4px 15px rgba(255, 75, 75, 0.4);
+        transition: all 0.3s ease;
     }
+    .stButton>button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(255, 75, 75, 0.6);
+    }
+    
+    /* 轉盤跳動的大字體 */
     .big-font {
-        font-size: 24px !important;
-        font-weight: bold;
-        color: #FF4B4B;
+        font-size: 28px !important;
+        font-weight: 800;
+        background: -webkit-linear-gradient(45deg, #FF4B4B, #FFD700);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
         text-align: center;
         margin-bottom: 10px;
+        text-shadow: 0px 0px 10px rgba(255, 75, 75, 0.3);
     }
+    
+    /* 結果顯示卡片 (Dark Mode 適配) */
     .result-card {
-        padding: 20px;
-        border-radius: 15px;
-        background-color: #f0f2f6;
+        padding: 25px;
+        border-radius: 16px;
+        background-color: rgba(255, 255, 255, 0.05); /* 半透明玻璃感 */
+        border: 1px solid rgba(255, 255, 255, 0.1);
         text-align: center;
         margin-top: 20px;
-        border: 2px solid #FF4B4B;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        color: #ffffff; /* 強制白字 */
+    }
+    .result-card h3 {
+        color: #FF4B4B !important;
+        margin-bottom: 10px;
+    }
+    .result-card p {
+        color: #e0e0e0 !important;
+        font-size: 16px;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# ---------- 只有抓圖才連網 (速度快很多) ----------
+# ---------- 只有抓圖才連網 (速度快) ----------
 @st.cache_data(ttl=3600)
 def fetch_image_urls(store_name, location):
     image_urls = []
@@ -54,10 +79,10 @@ def fetch_image_urls(store_name, location):
     except Exception:
         pass
     while len(image_urls) < 2:
-        image_urls.append("https://via.placeholder.com/400x300?text=Searching...")
+        image_urls.append("https://via.placeholder.com/400x300/333333/FFFFFF?text=Searching...")
     return image_urls
 
-# ---------- 資料庫 1：給「命運轉盤」用的 (包含真實人氣店) ----------
+# ---------- 資料庫 1：命運轉盤 (真實人氣店) ----------
 REAL_DB = {
     "台北": {
         "火鍋": ["詹記麻辣火鍋", "橘色涮涮屋", "這一鍋", "青花驕", "雞湯大叔"],
@@ -77,14 +102,14 @@ REAL_DB = {
     }
 }
 
-# ---------- 資料庫 2：給「手動選單」用的下拉選項 ----------
-# 這是你原本希望保留的選項
+# ---------- 資料庫 2：手動下拉清單 ----------
 STORE_MAP_MANUAL = {
     "火鍋": ["涮乃葉", "築間", "這一小鍋", "天香", "其他"],
     "韓式": ["涓豆腐", "永和樓", "韓華園", "香港飯店", "其他"],
     "義式": ["貳樓", "莫凡比", "亞丁尼", "其他"],
     "美式": ["Everywhere burger club", "JK Studio", "其他"],
-    "日式": ["藏壽司", "一蘭拉麵", "彌生軒", "其他"]
+    "日式": ["藏壽司", "一蘭拉麵", "彌生軒", "其他"],
+    "燒肉": ["原燒", "乾杯", "其他"] # 補上燒肉的手動選項
 }
 
 # ---------- 初始化 Session State ----------
@@ -92,21 +117,33 @@ if 'lucky_result' not in st.session_state:
     st.session_state['lucky_result'] = None
 
 # ==========================================
-# 📝 第一部分：表單區 (修復了手動選單！)
+# 📝 第一部分：表單區 (智慧填入邏輯)
 # ==========================================
 st.title("🍽️ 聚餐表單")
-st.info("⬇️ 覺得打字很累？滑到下面用「極速轉盤」幫你決定！")
+st.info("⬇️ 點擊最下方的「極速轉盤」，系統會自動幫你填好表單！")
 
-# --- 設定預設值邏輯 ---
+# --- 1. 計算預設值 ---
+# 定義所有可能的類型 (加上燒肉)
+type_options_list = ["請選擇", "火鍋", "韓式", "義式", "美式", "日式", "燒肉", "其他"]
+
 default_type_index = 0 
 default_store_val = ""
-is_from_lucky = False
+is_lucky_mode = False
 
-# 如果轉盤有結果，我們把預設類型設為 "其他" (Index 6)，並準備填入店名
 if st.session_state['lucky_result']:
-    default_type_index = 6 
-    default_store_val = st.session_state['lucky_result']['name']
-    is_from_lucky = True
+    lucky_data = st.session_state['lucky_result']
+    lucky_type = lucky_data['type']
+    
+    # 檢查轉到的類型是否在我們的清單中
+    if lucky_type in type_options_list:
+        default_type_index = type_options_list.index(lucky_type)
+        default_store_val = lucky_data['name']
+        is_lucky_mode = True
+    else:
+        # 如果轉到的類型很特別 (防呆)，就歸類到其他
+        default_type_index = type_options_list.index("其他")
+        default_store_val = lucky_data['name']
+        is_lucky_mode = True
 
 # --- 表單開始 ---
 RESPONSES_CSV = "answers.csv"
@@ -114,35 +151,31 @@ ADMIN_PASSWORD = "900508"
 
 date = st.date_input("📅 請選擇日期")
 
-# 這裡很重要：如果使用者自己去改了類型（例如從「其他」改回「火鍋」），我們就不應該再強制填入轉盤的結果
-type_options = ["請選擇", "火鍋", "韓式", "義式", "美式", "日式", "其他"]
-type_option = st.selectbox("🍱 餐廳類型", type_options, index=default_type_index)
+# 這裡使用 index 來自動選定轉盤的類型 (例如：自動選成 "火鍋")
+type_option = st.selectbox("🍱 餐廳類型", type_options_list, index=default_type_index)
 
 selected_store = ""
 
-# --- 核心邏輯修正 ---
-
-# 情況 A：目前選的是「其他」，且轉盤有結果 -> 自動填入轉盤店名
-if type_option == "其他" and is_from_lucky:
-    st.success(f"⚡ 極速轉盤推薦：{default_store_val} ({st.session_state['lucky_result']['loc']})")
+# --- 2. 智慧輸入框邏輯 ---
+# 邏輯：如果是轉盤模式，且使用者沒有切換類型，就直接顯示文字框並填入店名
+# 這樣就不用管下拉選單裡有沒有這家店了，最直觀
+if is_lucky_mode and type_option == st.session_state['lucky_result']['type']:
+    st.success(f"⚡ 轉盤推薦：{default_store_val} ({st.session_state['lucky_result']['loc']})")
     selected_store = st.text_input("店家名稱", value=default_store_val)
 
-# 情況 B：使用者手動選了某個類型 (且有定義在 STORE_MAP_MANUAL 裡) -> 顯示下拉選單
+# 如果使用者手動切換了類型 (例如原本轉到火鍋，但他改成韓式)，則回到一般下拉選單
 elif type_option in STORE_MAP_MANUAL:
     store_list = STORE_MAP_MANUAL[type_option]
     chosen_store = st.selectbox(f"請選擇{type_option}店家", store_list)
-    
     if chosen_store == "其他":
         selected_store = st.text_input(f"請輸入{type_option}店家名稱")
     else:
         selected_store = chosen_store
 
-# 情況 C：選了「其他」但不是轉盤來的 -> 一般手動輸入
 elif type_option == "其他":
     selected_store = st.text_input("請輸入餐廳名稱")
 
 else:
-    # 這裡處理 "請選擇" 的狀態
     selected_store = ""
 
 # --- 提交按鈕 ---
@@ -167,40 +200,42 @@ if submit_btn:
 st.markdown("---")
 
 # ==========================================
-# ⚡ 第二部分：極速轉盤 (保留不變)
+# ⚡ 第二部分：極速轉盤 (Glassmorphism UI)
 # ==========================================
 st.header("⚡ 極速命運轉盤")
-st.write("不再轉圈圈！秒選「台北/南崁」人氣名店，並自動抓取美食照。")
+st.write("點擊下方按鈕，秒選台北/南崁美食。")
 
 placeholder = st.empty()
 
-if st.button("🚀 幫我選！(不浪費時間版)"):
-    # 1. 動畫
+if st.button("🚀 啟動命運引擎"):
+    # 1. 動畫 (改用新的 CSS 樣式)
     locs = list(REAL_DB.keys())
-    for i in range(8):
+    for i in range(10):
         temp_loc = random.choice(locs)
         temp_types = list(REAL_DB[temp_loc].keys())
         temp_type = random.choice(temp_types)
         temp_store = random.choice(REAL_DB[temp_loc][temp_type])
-        placeholder.markdown(f"<div class='big-font'>📍 {temp_loc} | {temp_type} | {temp_store}</div>", unsafe_allow_html=True)
+        
+        # 這裡用 HTML 渲染金色漸層字體
+        placeholder.markdown(f"<div class='big-font'>📍 {temp_loc} | {temp_type}<br>{temp_store}</div>", unsafe_allow_html=True)
         time.sleep(0.08)
     
-    # 2. 結果
+    # 2. 決定結果
     final_loc = random.choice(locs)
     final_type = random.choice(list(REAL_DB[final_loc].keys()))
     final_store = random.choice(REAL_DB[final_loc][final_type])
     
     placeholder.markdown(f"""
         <div style='text-align:center'>
-            <h3>✨ 鎖定：{final_loc} 的 <span style='color:#FF4B4B'>{final_store}</span></h3>
-            <p>📸 正在抓取網路上的美食照...</p>
+            <h3>✨ 鎖定目標：{final_loc} 的 <span style='color:#FF4B4B'>{final_store}</span></h3>
+            <p>📸 正在從雲端下載美食照...</p>
         </div>
         """, unsafe_allow_html=True)
     
     # 3. 抓圖
     imgs = fetch_image_urls(final_store, final_loc)
     
-    # 4. 存檔並刷新
+    # 4. 存檔並刷新 (這會觸發上方的自動填入)
     st.session_state['lucky_result'] = {
         "name": final_store,
         "type": final_type,
@@ -209,16 +244,16 @@ if st.button("🚀 幫我選！(不浪費時間版)"):
     }
     st.rerun()
 
-# --- 顯示結果卡片 ---
+# --- 顯示結果卡片 (使用新的 Dark Mode CSS) ---
 if st.session_state['lucky_result']:
     res = st.session_state['lucky_result']
     placeholder.empty()
     
     st.markdown(f"""
     <div class="result-card">
-        <h3>🎉 推薦去吃：{res['name']}</h3>
-        <p>📍 地點：{res['loc']} ({res['type']})</p>
-        <p>☝️ <b>表單已自動填好囉！</b></p>
+        <h3>🎉 命運指定：{res['name']}</h3>
+        <p>📍 地點：{res['loc']} | 類型：{res['type']}</p>
+        <p style="color:#FF914D !important; font-weight:bold;">☝️ 表單已自動切換為「{res['type']}」並填入店名！</p>
     </div>
     """, unsafe_allow_html=True)
 
