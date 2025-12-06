@@ -115,7 +115,7 @@ if "admin" in query_params:
     st.markdown("### 🔐 管理者登入")
     password = st.text_input("請輸入管理密碼", type="password")
 
-    if password == "your_password_here":  # ← 你可以自行修改密碼
+    if password == "900508":  # ← 你可以自行修改密碼
         st.success("登入成功（僅你能看到）")
         if os.path.exists("answers.csv"):
             df_all = pd.read_csv("answers.csv", encoding="utf-8-sig")
@@ -124,3 +124,4 @@ if "admin" in query_params:
             st.info("目前尚無回應資料")
     elif password != "":
         st.error("密碼錯誤")
+
