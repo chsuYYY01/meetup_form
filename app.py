@@ -4,6 +4,10 @@ import os
 
 st.set_page_config(page_title="桃園聚餐表單", page_icon="🍽️", layout="centered")
 
+# ---------- 說明：修改管理者密碼就在這一行 ----------
+ADMIN_PASSWORD = "900508"  # <-- 在這裡改成你想要的密碼
+RESPONSES_CSV = "answers.csv"
+
 # ---------- UI 美化 ----------
 st.title("🍽️ 桃園聚餐選擇表單")
 st.markdown("請依序選擇日期、餐廳類型與店家，填寫後可儲存回答。")
@@ -25,9 +29,6 @@ STORE_LISTS = {
     ]
 }
 
-ADMIN_PASSWORD = "admin123"  # 管理者密碼，可自行更改
-RESPONSES_CSV = "answers.csv"
-
 # ---------- 問卷表單 ----------
 with st.form(key="response_form"):
     st.subheader("📅 選擇日期")
@@ -36,15 +37,16 @@ with st.form(key="response_form"):
     st.subheader("🍱 選擇餐廳類型")
     type_option = st.selectbox("餐廳類型", ["請選擇"] + list(STORE_LISTS.keys()) + ["其他"])
 
+    # 動態顯示店家選項
     selected_store = ""
     if type_option in STORE_LISTS:
         st.subheader("🏠 選擇店家")
-        col1, col2 = st.columns(2)
-        with col1:
-            selected_store = st.selectbox("請選擇店家", STORE_LISTS[type_option] + ["其他/手動輸入"])
-        with col2:
-            if selected_store == "其他/手動輸入":
-                selected_store = st.text_input("手動輸入店家名稱")
+        # 先選店家
+        selected_store = st.selectbox(
+            "請選擇店家", STORE_LISTS[type_option] + ["其他/手動輸入"]
+        )
+        if selected_store == "其他/手動輸入":
+            selected_store = st.text_input("手動輸入店家名稱")
     elif type_option == "其他":
         selected_store = st.text_input("請輸入想吃的餐廳或店家名稱")
 
@@ -74,7 +76,7 @@ if submit_btn:
 
 st.markdown("---")
 
-# ---------- 管理者模式（完全隱藏，只有輸入密碼才會顯示） ----------
+# ---------- 管理者模式（完全隱藏，只有輸入正確密碼才顯示） ----------
 password = st.text_input("🔒 管理者專用密碼 (僅你知道)", type="password")
 if password == ADMIN_PASSWORD:
     st.subheader("🔐 管理者區")
