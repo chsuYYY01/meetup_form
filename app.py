@@ -76,7 +76,7 @@ st.markdown("---")
 
 # ---------- 管理者模式（完全隱藏，只有輸入密碼才會顯示） ----------
 password = st.text_input("🔒 管理者專用密碼 (僅你知道)", type="password")
-if password == 900508:
+if password == ADMIN_PASSWORD:
     st.subheader("🔐 管理者區")
     if os.path.exists(RESPONSES_CSV):
         df = pd.read_csv(RESPONSES_CSV, encoding="utf-8-sig")
@@ -94,4 +94,3 @@ if password == 900508:
             st.dataframe(df[df["restaurant_type"].isin(sel_type)])
     else:
         st.info("目前還沒有回應。")
-
