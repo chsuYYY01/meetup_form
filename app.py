@@ -95,7 +95,6 @@ if submitted:
         "type": [type_option],
         "hotpot_store": [hotpot_store],
         "korean_store": [korean_store],
-        "italy_store": [italy_store],
 
         "comment": [comment]
     }
@@ -131,6 +130,7 @@ if "admin" in query_params:
             st.info("目前尚無回應資料")
     elif password != "":
         st.error("密碼錯誤")
+
 
 
 
