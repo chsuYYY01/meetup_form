@@ -7,7 +7,7 @@ from duckduckgo_search import DDGS
 
 # ---------- 網頁設定 ----------
 st.set_page_config(
-    page_title="聚餐大輪盤 (完美整合版)",
+    page_title="聚餐大輪盤",
     page_icon="🍲",
     layout="centered"
 )
@@ -327,3 +327,4 @@ if password == ADMIN_PASSWORD:
         df = pd.read_csv(RESPONSES_CSV, encoding="utf-8-sig")
         st.dataframe(df)
         st.download_button("📥 下載 CSV", open(RESPONSES_CSV, "rb"), "responses.csv")
+
