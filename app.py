@@ -4,12 +4,12 @@ import os
 
 # ---------- 網頁設定 ----------
 st.set_page_config(
-    page_title="桃園聚餐表單",
+    page_title="聚餐表單",
     page_icon="🍽️",
     layout="centered"
 )
 
-st.title("🍽️ 桃園聚餐選擇表單")
+st.title("🍽️ 聚餐選擇表單")
 st.markdown("請依序選擇日期、餐廳類型與店家，填寫後提交即可。")
 st.markdown("---")
 
@@ -102,4 +102,5 @@ if password == ADMIN_PASSWORD:
             st.dataframe(df[df["restaurant_type"].isin(sel_type)])
     else:
         st.info("目前還沒有回應。")
+
 
