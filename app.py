@@ -322,8 +322,9 @@ if st.session_state['lucky_result']:
 
 # (管理者區保持不變)
 password = st.text_input("🔒 管理者密碼", type="password")
-if password == ADMIN_PASSWORD:
+if password == 900508:
     if os.path.exists(RESPONSES_CSV):
         df = pd.read_csv(RESPONSES_CSV, encoding="utf-8-sig")
         st.dataframe(df)
         st.download_button("📥 下載 CSV", open(RESPONSES_CSV, "rb"), "responses.csv")
+
