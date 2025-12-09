@@ -8,7 +8,7 @@ from duckduckgo_search import DDGS
 
 # ---------- 網頁設定 ----------
 st.set_page_config(
-    page_title="聚餐大輪盤 (真實動畫版)",
+    page_title="聚餐大輪盤 (如果想不到吃什麼請按我!!!)",
     page_icon="🎡",
     layout="centered"
 )
@@ -281,13 +281,13 @@ if st.session_state['lucky_result']:
 RESPONSES_CSV = "answers.csv"
 ADMIN_PASSWORD = "900508"
 
-date = st.date_input("📅 請選擇日期")
-type_option = st.selectbox("🍱 餐廳類型", all_types, index=default_type_index)
+date = st.date_input("📅 請選擇您喜歡的日期")
+type_option = st.selectbox("🍱 請選擇您想吃的餐廳類型", all_types, index=default_type_index)
 selected_store = ""
 
 if is_lucky_mode and type_option == st.session_state['lucky_result']['type']:
     st.success(f"📍 命運指定：{default_store_val}")
-    selected_store = st.text_input("店家名稱", value=default_store_val)
+    selected_store = st.text_input("請選擇您想吃店家名稱", value=default_store_val)
 elif type_option in STORE_MAP_MANUAL:
     store_list = STORE_MAP_MANUAL[type_option]
     chosen_store = st.selectbox(f"請選擇{type_option}店家", store_list)
@@ -317,8 +317,8 @@ st.markdown("---")
 # ==========================================
 # 🎡 真・動畫轉盤
 # ==========================================
-st.header("🎡 命運轉盤")
-st.write("點擊按鈕，召喚真實轉盤！")
+st.header("🎡 命運轉盤幫你選")
+st.write("點擊按鈕，召喚轉盤(如果想不到吃什麼請按我!!!)")
 
 # 這裡使用 container 來控制顯示區域
 wheel_zone = st.container()
@@ -422,3 +422,4 @@ if password == ADMIN_PASSWORD:
         st.warning("📭 目前尚無資料")
 elif password:
     st.error("❌ 密碼錯誤")
+
