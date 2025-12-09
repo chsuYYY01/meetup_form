@@ -324,68 +324,78 @@ st.write("點擊按鈕，召喚轉盤(如果想不到吃什麼請按我!!!)")
 wheel_zone = st.container()
 
 if st.button("🚀 啟動命運引擎"):
-    locs = list(active_db.keys())
+    # 1. 把所有餐廳攤平成一個大清單 (Flatten the list)
+    # 這樣每一家餐廳被選到的機率就真的是 1/N，而不是先選區再選類別
+    all_candidates = []
     
-    if not locs:
+    # 從 active_db 提取所有餐廳
+    for loc, type_dict in active_db.items():
+        for r_type, store_list in type_dict.items():
+            for store in store_list:
+                # 把每一家店的資訊打包，加入候選名單
+                all_candidates.append({
+                    "name": store['name'],
+                    "addr": store['addr'],
+                    "type": r_type,
+                    "loc": loc
+                })
+
+    if not all_candidates:
         st.error("資料庫為空，請確認 CSV 檔案是否正確！")
     else:
-        # 1. Python 先作弊算出結果
-        f_loc = random.choice(locs)
-        f_types = list(active_db[f_loc].keys())
-        if f_types:
-            f_type = random.choice(f_types)
-            f_store = random.choice(active_db[f_loc][f_type])
+        # 2. 真・隨機抽選 (True Random Selection)
+        # 直接從幾百家店裡抽一家，完全公平
+        winner = random.choice(all_candidates)
+        
+        f_store_name = winner['name']
+        f_store_addr = winner['addr']
+        f_type = winner['type']
+        f_loc = winner['loc']
+        
+        # 3. 準備轉盤上的「混淆選項」 (Visual Randomness)
+        # 為了讓轉盤看起來很豐富，我們從大清單裡隨機抓 7 個「陪榜」的店
+        # 這樣轉盤上就會出現：台北火鍋、南崁拉麵、高雄燒肉... 等等大亂鬥
+        
+        # 取得所有店名列表
+        all_names = [r['name'] for r in all_candidates]
+        
+        # 先把贏家拿掉，避免重複選到
+        if f_store_name in all_names:
+            all_names.remove(f_store_name)
             
-            # 準備轉盤選項：為了不讓轉盤太擠，我們取同地區的一些餐廳混進去
-            # 或者如果太少，就隨機塞一些 "再來一次"
-            wheel_items = []
-            # 嘗試抓取該地區該類型的所有餐廳當作選項
-            candidates = [s['name'] for s in active_db[f_loc][f_type]]
+        # 隨機打亂並取前 7 個當陪榜
+        random.shuffle(all_names)
+        wheel_items = all_names[:7]
+        
+        # 把贏家加回來 (變成 8 個選項)
+        wheel_items.append(f_store_name)
+        
+        # 再次打亂轉盤上的順序，不然贏家永遠在最後一個很奇怪
+        random.shuffle(wheel_items)
+        
+        # 找到贏家在轉盤上的新位置 (index)
+        winner_idx = wheel_items.index(f_store_name)
+        
+        # 4. 顯示轉盤動畫
+        with wheel_zone:
+            st.info(f"🎯 正在全區隨機搜索美食中...")
+            # 呼叫 JS 轉盤
+            wheel_animation(wheel_items, winner_idx)
             
-            # 如果選項太少(<4)，我們補一些其他的
-            if len(candidates) < 4:
-                # 補該地區其他類型的
-                for t in f_types:
-                    candidates.extend([s['name'] for s in active_db[f_loc][t]])
-            
-            # 去重並取最多 8 個，確保贏家在裡面
-            wheel_items = list(set(candidates))
-            if f_store['name'] not in wheel_items:
-                wheel_items.append(f_store['name'])
-            
-            random.shuffle(wheel_items)
-            wheel_items = wheel_items[:8] # 最多8個切片
-            
-            # 確保贏家在裡面 (以防 shuffle 切掉)
-            if f_store['name'] not in wheel_items:
-                wheel_items[0] = f_store['name']
-            
-            # 找到贏家的 index
-            winner_idx = wheel_items.index(f_store['name'])
-            
-            # 2. 顯示轉盤動畫
-            with wheel_zone:
-                st.info(f"🎯 目標鎖定範圍：{f_loc} 的 {f_type}...")
-                # 呼叫 JS 轉盤
-                wheel_animation(wheel_items, winner_idx)
-                
-                # 為了配合動畫時間 (JS 設定轉 4 秒)，Python 這裡暫停一下
-                # 這樣結果卡片才不會在轉盤還在轉的時候就劇透
-                time.sleep(4.2)
-            
-            # 3. 抓圖並顯示結果
-            imgs = fetch_image_urls(f_store['name'], f_loc)
-            
-            st.session_state['lucky_result'] = {
-                "name": f_store['name'],
-                "addr": f_store['addr'],
-                "type": f_type,
-                "loc": f_loc,
-                "imgs": imgs
-            }
-            st.rerun() # 重新整理以顯示結果卡片
-        else:
-            st.error("選到的地區沒有餐廳資料！")
+            # 為了配合動畫時間 (JS 設定轉 4 秒)，Python 這裡暫停一下
+            time.sleep(4.2)
+        
+        # 5. 抓圖並顯示結果
+        imgs = fetch_image_urls(f_store_name, f_loc)
+        
+        st.session_state['lucky_result'] = {
+            "name": f_store_name,
+            "addr": f_store_addr,
+            "type": f_type,
+            "loc": f_loc,
+            "imgs": imgs
+        }
+        st.rerun() # 重新整理以顯示結果卡片
 
 # 顯示轉盤結果
 if st.session_state['lucky_result']:
@@ -422,4 +432,3 @@ if password == ADMIN_PASSWORD:
         st.warning("📭 目前尚無資料")
 elif password:
     st.error("❌ 密碼錯誤")
-
