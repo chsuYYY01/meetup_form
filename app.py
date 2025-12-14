@@ -3,7 +3,8 @@ import pandas as pd
 import os
 import random
 import time
-import streamlit.components.v1 as components # 👈 引入這個元件來跑 HTML/JS
+import datetime  # 👈 新增這個套件來抓今天的日期
+import streamlit.components.v1 as components 
 from duckduckgo_search import DDGS
 
 # ---------- 網頁設定 ----------
@@ -52,11 +53,6 @@ st.markdown("""
 
 # ---------- 核心功能：HTML5 Canvas 轉盤 (JavaScript) ----------
 def wheel_animation(items, winner_index):
-    """
-    這段程式碼會生成一個 HTML/JS 轉盤。
-    Python 會先決定 winner_index，然後 JS 負責演戲轉到那個位置。
-    """
-    # 轉成 JS 陣列字串
     items_js = str(items).replace("'", '"') 
     
     html_code = f"""
@@ -90,7 +86,7 @@ def wheel_animation(items, winner_index):
             const canvas = document.getElementById('wheel');
             const ctx = canvas.getContext('2d');
             const items = {items_js};
-            const winnerIdx = {winner_index}; // Python 傳進來的贏家索引
+            const winnerIdx = {winner_index}; 
             
             const colors = ['#FF9AA2', '#FFB7B2', '#FFDAC1', '#E2F0CB', '#B5EAD7', '#C7CEEA', '#f8d5f6', '#ebd4aa'];
             const n = items.length;
@@ -98,7 +94,6 @@ def wheel_animation(items, winner_index):
             let startAngle = 0;
             let spinTimeout = null;
             
-            // 畫轉盤
             function drawWheel() {{
                 for (let i = 0; i < n; i++) {{
                     const angle = startAngle + i * arc;
@@ -109,10 +104,9 @@ def wheel_animation(items, winner_index):
                     ctx.lineTo(250, 250);
                     ctx.fill();
                     
-                    // 文字
                     ctx.save();
                     ctx.translate(250 + Math.cos(angle + arc / 2) * 180, 250 + Math.sin(angle + arc / 2) * 180);
-                    ctx.rotate(angle + arc / 2 + Math.PI); // 文字轉向
+                    ctx.rotate(angle + arc / 2 + Math.PI);
                     ctx.fillStyle = "#333";
                     ctx.font = "bold 24px Arial";
                     const text = items[i].length > 8 ? items[i].substring(0,7)+"..." : items[i];
@@ -121,20 +115,10 @@ def wheel_animation(items, winner_index):
                 }}
             }}
 
-            // 動畫邏輯
             let currentAngle = 0;
-            // 計算目標角度：我們要讓指針(0度/360度)指向贏家
-            // 因為 Canvas 旋轉了 -90度，且指針在右邊(0度)，
-            // 我們需要反向計算。這是一個 hack，確保最後停在 Python 指定的位置。
-            // 贏家位置的中心角度 = winnerIdx * arc + arc/2
-            // 我們要旋轉轉盤，使得這個角度對齊 0 度。
-            // 加上 10 圈 (10 * 2PI) 製造旋轉感
-            
-            // 經過精密計算的作弊角度
             const rotateAngle = (10 * 2 * Math.PI) - ((winnerIdx * arc) + (arc/2));
-            
             let spinTime = 0;
-            const spinTimeTotal = 4000; // 轉 4 秒
+            const spinTimeTotal = 4000;
             
             function rotate() {{
                 spinTime += 20;
@@ -142,11 +126,8 @@ def wheel_animation(items, winner_index):
                     drawWheel();
                     return;
                 }}
-                
-                // 緩動函數 (Ease Out)
                 const p = spinTime / spinTimeTotal;
-                const delta = (1 - Math.pow(1 - p, 3)) * rotateAngle; // Cubic Ease Out
-                
+                const delta = (1 - Math.pow(1 - p, 3)) * rotateAngle;
                 startAngle = delta;
                 ctx.clearRect(0, 0, 500, 500);
                 drawWheel();
@@ -154,12 +135,11 @@ def wheel_animation(items, winner_index):
             }}
 
             drawWheel();
-            setTimeout(rotate, 100); // 啟動旋轉
+            setTimeout(rotate, 100);
         </script>
     </body>
     </html>
     """
-    # 渲染 HTML，高度設為 320px
     components.html(html_code, height=320)
 
 # ---------- 爬圖函式 ----------
@@ -218,7 +198,6 @@ DEFAULT_BACKUP_DB = {
 # ---------- Init Session ----------
 if 'lucky_result' not in st.session_state:
     st.session_state['lucky_result'] = None
-# 新增一個狀態來控制動畫顯示
 if 'show_wheel' not in st.session_state:
     st.session_state['show_wheel'] = False
 
@@ -251,7 +230,6 @@ st.session_state['active_db'] = active_db
 st.title("🍽️ 聚餐表單")
 st.caption(f"🎯 {source_msg}")
 
-# 下拉選單處理
 current_db_types = set()
 for loc in st.session_state['active_db']:
     current_db_types.update(st.session_state['active_db'][loc].keys())
@@ -261,7 +239,6 @@ all_types = sorted(list(manual_types | current_db_types), key=lambda x: (x=="其
 if "請選擇" not in all_types: all_types.insert(0, "請選擇")
 if "其他" in all_types: all_types.remove("其他"); all_types.append("其他")
 
-# 預設值
 default_type_index = 0 
 default_store_val = ""
 is_lucky_mode = False
@@ -277,11 +254,12 @@ if st.session_state['lucky_result']:
         default_store_val = lucky_data['name']
         is_lucky_mode = True
 
-# 表單輸入
 RESPONSES_CSV = "answers.csv"
 ADMIN_PASSWORD = "900508"
 
-date = st.date_input("📅 請選擇您喜歡的日期")
+# 📅 日期選擇修正：加入 min_value=datetime.date.today()
+date = st.date_input("📅 請選擇您喜歡的日期", min_value=datetime.date.today())
+
 type_option = st.selectbox("🍱 請選擇您想吃的餐廳類型", all_types, index=default_type_index)
 selected_store = ""
 
@@ -320,19 +298,13 @@ st.markdown("---")
 st.header("🎡 命運轉盤幫你選")
 st.write("點擊按鈕，召喚轉盤(如果想不到吃什麼請按我!!!)")
 
-# 這裡使用 container 來控制顯示區域
 wheel_zone = st.container()
 
 if st.button("🚀 啟動命運引擎"):
-    # 1. 把所有餐廳攤平成一個大清單 (Flatten the list)
-    # 這樣每一家餐廳被選到的機率就真的是 1/N，而不是先選區再選類別
     all_candidates = []
-    
-    # 從 active_db 提取所有餐廳
     for loc, type_dict in active_db.items():
         for r_type, store_list in type_dict.items():
             for store in store_list:
-                # 把每一家店的資訊打包，加入候選名單
                 all_candidates.append({
                     "name": store['name'],
                     "addr": store['addr'],
@@ -343,49 +315,27 @@ if st.button("🚀 啟動命運引擎"):
     if not all_candidates:
         st.error("資料庫為空，請確認 CSV 檔案是否正確！")
     else:
-        # 2. 真・隨機抽選 (True Random Selection)
-        # 直接從幾百家店裡抽一家，完全公平
         winner = random.choice(all_candidates)
-        
         f_store_name = winner['name']
         f_store_addr = winner['addr']
         f_type = winner['type']
         f_loc = winner['loc']
         
-        # 3. 準備轉盤上的「混淆選項」 (Visual Randomness)
-        # 為了讓轉盤看起來很豐富，我們從大清單裡隨機抓 7 個「陪榜」的店
-        # 這樣轉盤上就會出現：台北火鍋、南崁拉麵、高雄燒肉... 等等大亂鬥
-        
-        # 取得所有店名列表
         all_names = [r['name'] for r in all_candidates]
-        
-        # 先把贏家拿掉，避免重複選到
         if f_store_name in all_names:
             all_names.remove(f_store_name)
             
-        # 隨機打亂並取前 7 個當陪榜
         random.shuffle(all_names)
         wheel_items = all_names[:7]
-        
-        # 把贏家加回來 (變成 8 個選項)
         wheel_items.append(f_store_name)
-        
-        # 再次打亂轉盤上的順序，不然贏家永遠在最後一個很奇怪
         random.shuffle(wheel_items)
-        
-        # 找到贏家在轉盤上的新位置 (index)
         winner_idx = wheel_items.index(f_store_name)
         
-        # 4. 顯示轉盤動畫
         with wheel_zone:
             st.info(f"🎯 正在全區隨機搜索美食中...")
-            # 呼叫 JS 轉盤
             wheel_animation(wheel_items, winner_idx)
-            
-            # 為了配合動畫時間 (JS 設定轉 4 秒)，Python 這裡暫停一下
             time.sleep(4.2)
         
-        # 5. 抓圖並顯示結果
         imgs = fetch_image_urls(f_store_name, f_loc)
         
         st.session_state['lucky_result'] = {
@@ -395,9 +345,8 @@ if st.button("🚀 啟動命運引擎"):
             "loc": f_loc,
             "imgs": imgs
         }
-        st.rerun() # 重新整理以顯示結果卡片
+        st.rerun() 
 
-# 顯示轉盤結果
 if st.session_state['lucky_result']:
     res = st.session_state['lucky_result']
     map_url = f"https://www.google.com/maps/search/?api=1&query={res['addr']}"
