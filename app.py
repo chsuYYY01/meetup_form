@@ -417,18 +417,20 @@ if st.session_state['lucky_result']:
     with c1: st.image(res['imgs'][0], use_container_width=True)
     with c2: st.image(res['imgs'][1], use_container_width=True)
 
-# 管理者區
+# ==========================================
+# 🔒 管理者模式 (改為下拉選單顯示)
+# ==========================================
 st.markdown("---")
-st.subheader("🔒 管理者專區")
-password = st.text_input("請輸入管理密碼", type="password")
-if password == ADMIN_PASSWORD:
-    st.success("✅ 登入成功！")
-    if os.path.exists(RESPONSES_CSV):
-        df = pd.read_csv(RESPONSES_CSV, encoding="utf-8-sig")
-        st.write(f"📊 共 {len(df)} 筆資料")
-        st.dataframe(df)
-        st.download_button("📥 下載 CSV", open(RESPONSES_CSV, "rb"), "responses.csv", "text/csv")
-    else:
-        st.warning("📭 目前尚無資料")
-elif password:
-    st.error("❌ 密碼錯誤")
+with st.expander("🔒 管理者專區 (點擊展開)"):
+    password = st.text_input("請輸入管理密碼", type="password")
+    if password == ADMIN_PASSWORD:
+        st.success("✅ 登入成功！")
+        if os.path.exists(RESPONSES_CSV):
+            df = pd.read_csv(RESPONSES_CSV, encoding="utf-8-sig")
+            st.write(f"📊 共 {len(df)} 筆資料")
+            st.dataframe(df)
+            st.download_button("📥 下載 CSV", open(RESPONSES_CSV, "rb"), "responses.csv", "text/csv")
+        else:
+            st.warning("📭 目前尚無資料")
+    elif password:
+        st.error("❌ 密碼錯誤")
